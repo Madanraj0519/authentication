@@ -2,6 +2,7 @@ const VenueRouter = require('express').Router();
 const VenueModel = require('../model/Venue.model');
 const bookingModel = require('../model/Booking.model');
 const CustomerModel = require('../model/Customer.model');
+const getAllVenues = require('../routes/venue.route');
 
 
 
@@ -9,7 +10,7 @@ const CustomerModel = require('../model/Customer.model');
 VenueRouter.get('/', async(req, res) => {
     // console.log(CustomerModel);
   try{
-    const Venue = await VenueModel.find()
+    const Venue = await getAllVenues();
   
     res.status(200).json({
         message : "Customer data was successfully fetched",
@@ -71,7 +72,7 @@ VenueRouter.post('/create', async(req, res) => {
    
 
     try{
-        console.log(req.body);
+        // console.log(req.body);
         // Create a instance of data into the customer model,
         const Venue = await new VenueModel(req.body);
         // console.log(customer);

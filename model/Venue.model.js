@@ -24,6 +24,10 @@ const VenueSchema = mongoose.Schema({
         type : [mongoose.Types.ObjectId],
         ref : "booking"
     },
+    image : {
+        type : String,
+        required : true,
+    },
 });
 
 
