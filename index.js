@@ -8,16 +8,10 @@ const nodemailer = require('nodemailer');
 
 
 // enabling CORS
-HTTP_SERVER.use(cors({
-  "origin": "http://localhost:5173",
-  "methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
-  "preflightContinue": false,
-  "optionsSuccessStatus": 204
-}));
+HTTP_SERVER.use(cors());
 
 
 connectDatabase();
-
 
 
 HTTP_SERVER.use(bodyparser.json());

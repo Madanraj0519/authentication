@@ -1,37 +1,41 @@
-"use strict";
+// "use strict";
 const nodemailer = require("nodemailer");
 var crypto = require("crypto");
 require('dotenv').config();
+const cors = require("cors");
+const sendEmail = require('../service');
+
 
 const UserModel = require('../model/User.model');
 const authRouter = require('express').Router();
-// const {sendTestEmail} = require('../mailer');
 
 // sign-up
-authRouter.post('/create', async(req, res) => {
+authRouter.post('/create', async (req, res) => {
+    try {
+        const { name, email, phoneNumber, password } = req.body;
 
-   try{
-    const user = new UserModel(req.body);
-    const response = await user.save();
+        // Basic request validation
+        if (!name || !email || !phoneNumber || !password) {
+            return res.status(400).json({ success: false, message: 'Please provide all required fields.' });
+        }
 
-    if(response._id){
-        return res.status(201).json({
-            success : true,
-            message : "Your account has been created successfully"
-        });
-    }else{
-        return res.status(500).json({
-            success : false,
-            message : "Something went wrong"
-        })
+        // Check if user already exists with the provided email
+        const existingUser = await UserModel.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ success: false, message: 'User with this email already exists.' });
+        }
+        
+        // Create a new user
+        const newUser = new UserModel({ name, email, phoneNumber, password });
+        const savedUser = await newUser.save();
+
+        res.status(201).json({ success: true, message: 'Your account has been created successfully', user: savedUser });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Something went wrong' });
     }
-   }catch(err){
-    return res.status(400).json({
-        success : false,
-        error : err.message
-    })
-   }
 });
+
 
 
 // sing-in
@@ -83,7 +87,7 @@ authRouter.post('/login', async(req, res) => {
 });
 
 // forgot password
-authRouter.post('/forgotPassword', async(req, res) => {
+authRouter.post('/forgotPassword', cors(), async(req, res) => {
     try{
         // generating random string,
 
@@ -105,35 +109,12 @@ authRouter.post('/forgotPassword', async(req, res) => {
             response.string = randomString;
             await response.save();
 
+            // for sending the email to the user
+            const url = `http://localhost:5173/updatePassword?uid=${response._id}&str=${response.string}`;
 
-            const transporter = nodemailer.createTransport({
-                host: "smtp.gmail.com",
-                port: 465,
-                secure: true,
-                auth: {
-                  // TODO: replace `user` and `pass` values from <https://forwardemail.net>
-                  user: "madanraj0519@gmail.com",
-                  pass: "ljyahzufitgnsrgl",
-                },
-              })
-
-              async function main() {
-                // send mail with defined transport object
-                const info = await transporter.sendMail({
-                  from: '"Fred Foo 👻" <madanraj0519@gmail.com>', // sender address
-                  to: "madanswetha10@gmail.com", // list of receivers
-                  subject: "Hello ✔", // Subject line
-                  text: "Hello world?", // plain text body
-                  html: "<b>Hello world?</b>", // html body
-                });
+            sendEmail(response.email, url);
               
-                console.log("Message sent: %s", info.messageId);
-              }
-              
-              main().catch(console.error);
-           
-            
-            return res.status(301).json({
+            return res.status(200).json({
             success : true,
             message : "password recovery email sent successfully",
             uid : response._id,
@@ -143,7 +124,7 @@ authRouter.post('/forgotPassword', async(req, res) => {
         }else{
             return res.status(401).json({
                 success : false,
-                message : "Account not found!"
+                message : "Account not found! Create a new account"
             })
         }
        }catch(err){
@@ -156,15 +137,18 @@ authRouter.post('/forgotPassword', async(req, res) => {
 
 authRouter.put("/update/:uid", (req, res) => {
 
-    // const UserData = req.body;
-    const { uid } = req.params;
+    const UserData = req.body;
+    const { uid,} = req.params;
   
-    UserModel.findByIdAndUpdate(uid, { $unset: { string : 1 } })
+    UserModel.findByIdAndUpdate(uid, 
+        UserData, 
+        { $unset: { string : 1 }}
+        )
       .then((response) => {
         if (response && response._id) {  
             return res.status(200).json({
             success: true,
-            message: "User Updated Successfully",
+            message: "User Password Updated Successfully",
           });
         } else {
           return res.status(500).json({
